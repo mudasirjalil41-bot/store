@@ -4,6 +4,7 @@ import logging
 from django.http import JsonResponse
 from django.core.paginator import Paginator ,EmptyPage, PageNotAnInteger
 from .models import Product
+from django.db.models import F
 
 logger = logging.getLogger("store")
 def product_list(request):
@@ -46,6 +47,32 @@ def product_list(request):
     except Exception as e:
         logger.error(f"unexpected error occurred {str(e)}. ")
         return JsonResponse ("server problem", status = 500)
+
+def advanced_filter_product(request):
+    try:
+
+        filter_product = Product.objects.filter(price__gt = 500).annotate(tax_amount = F("price")*0.18,
+                                                                      total_amount = F("price")+ F("price")*0.18)
+        filter_product_list = []
+        for product in filter_product:
+          filter_product_list.append({
+            "product_name": product.name,
+            "original_price": str(product.price),
+            "tex_price": round(product.tax_amount,2),
+            "total_price":round(product.total_amount,2),
+
+        })
+
+        return JsonResponse({
+            "status": "success",
+            "total_premium_product": len(filter_product_list),
+            "products": filter_product_list
+        },safe = False)
+    except Exception as e:
+        logger.error(f"error in advanced filter view: {str(e)}")
+        return JsonResponse({"error":"server internal problem"},status = 500 )
+
+
 
 
 
