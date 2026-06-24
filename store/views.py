@@ -1,4 +1,4 @@
-
+from django.db.models import Sum,Avg,Count
 from django.shortcuts import render
 import logging
 from django.http import JsonResponse
@@ -71,6 +71,26 @@ def advanced_filter_product(request):
     except Exception as e:
         logger.error(f"error in advanced filter view: {str(e)}")
         return JsonResponse({"error":"server internal problem"},status = 500 )
+def store_dashboard_stats(request):
+    try:
+        stats = Product.objects.aggregate(
+            total_product = Count("id"),
+            average_price = Avg("price"),
+            total_inventory_value = Sum(F("price")*F("stock"))
+        )
+
+        return JsonResponse({
+            "status": "success",
+            "dashboard_metric":{
+                "total_product_count": stats["total_product"] or 0,
+                "average_product_price": round(stats["average_price"] or 0, 2),
+                "total_store_worth": round(stats["total_inventory_value"] or 0 ,2),
+            }
+        },safe = False)
+    except Exception as e:
+        logger.error(f"error in dashboard stats view: {str(e)}")
+        return JsonResponse ({"error":"server internal problem"},status = 500)
+
 
 
 
