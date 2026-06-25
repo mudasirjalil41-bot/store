@@ -3,6 +3,8 @@ from django.shortcuts import render
 import logging
 from django.http import JsonResponse
 from django.core.paginator import Paginator ,EmptyPage, PageNotAnInteger
+from unicodedata import category
+from django.db.models import Case,When,CharField,Value
 from .models import Product,Order
 from django.db.models import F
 import json
@@ -154,6 +156,58 @@ def customer_purchase_insight(request):
     except Exception as e:
         logger.error(f"Unexpected error in insights view: {str(e)}")
         return JsonResponse({"error": "Server internal problem"}, status=500)
+
+def apply_flash_sale(request):
+    if request.method != "POST":
+        return JsonResponse({"error":" method not allowed to used post"}, status = 405)
+    try:
+        data = json.loads(request.body)
+        category_id = data.get("category_id")
+        if not category_id:
+            return JsonResponse({"error":"category ID  is required."},status = 400)
+        updated_count = Product.objects.filter(category_id = category_id).update(
+         price = F("price") * 0.80
+        )
+        return JsonResponse({
+            "status": "success",
+            "message": "flash sale apply successfully",
+            "total_product_updated": updated_count
+
+        },safe = False)
+    except Exception as e:
+        logger.error(f"unexpected error in flash sale{str(e)}")
+        return JsonResponse({"error":"Server internal problem"},status = 500)
+
+def low_stock_alert_report(request):
+    if request.method != "GET":
+        return JsonResponse({"error": "method not allowed used GET"},status = 405)
+    try:
+        low_stock_queryset = Product.objects.filter(stock__lte = 10).annotate(
+            stock_status = Case(
+               When( stock = 0, then = Value("out of stock")),
+                default = Value("low stock"),
+                output_field = CharField(),
+            )
+        )
+        low_stock_list = []
+        for product in low_stock_queryset:
+            low_stock_list.append({
+                "product_name": product.name,
+                "current_stock": product.stock,
+                "alert_status": product.stock_status
+            })
+        return JsonResponse({
+            "status": "success",
+            "total_alert": len(low_stock_list),
+            "low_stock_product": low_stock_list
+        },safe = False)
+
+    except  Exception as e:
+        logger.error(f"Unexpected error in low stock report: {str(e)}")
+        return JsonResponse({"error": "server internal problem"},status = 500)
+
+
+
 
 
 

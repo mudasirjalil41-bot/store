@@ -22,10 +22,12 @@ class Order(models.Model):
         ("cancelled","cancelled"),
 
     ]
-    customer_name = models.CharField(max_index = True, max_length = 100)
+    customer_name = models.CharField(db_index = True, max_length = 100)
     total_amount = models.DecimalField(max_digits = 10, decimal_places = 2)
     status = models.CharField(max_length =20, choices = status_choice, default = 'Pending')
     created_at = models.DateTimeField(auto_now_add = True)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)  # Kis product ka order hai
+    quantity = models.IntegerField(null = True,blank = True)
 
     def __str__(self):
         return f"Order {self.id} by {self.customer_name}"
