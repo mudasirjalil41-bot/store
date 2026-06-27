@@ -42,6 +42,6 @@ def reduce_product_stock(sender,instance,created, **kwargs):
                 f"❌ Order Cancelled: stock of Product ID {instance.product_id}  {instance.quantity} again increased.")
 
                     print(   f"❌ Order Cancelled: product ID {instance.product_id} stock increased by {instance.quantity} ")
-
+                    instance.delete()
             except Exception as e:
                  logger.error(f"Error in restore stock signal: {str(e)}")
