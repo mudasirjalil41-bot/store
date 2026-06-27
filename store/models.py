@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 
 class Category(models.Model):
     name = models.CharField(max_length = 222)
@@ -16,6 +17,8 @@ class Product(models.Model):
         return self.name
 
 class Order(models.Model):
+
+
     status_choice = [
         ("pending","pending"),
         ("delivered", "delivered"),
@@ -26,11 +29,19 @@ class Order(models.Model):
     total_amount = models.DecimalField(max_digits = 10, decimal_places = 2)
     status = models.CharField(max_length =20, choices = status_choice, default = 'Pending')
     created_at = models.DateTimeField(auto_now_add = True)
+    stock_restored = models.BooleanField(default=False)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)  # Kis product ka order hai
     quantity = models.IntegerField(null = True,blank = True)
 
+    def clean(self):
+       if self.product and self.quantity:
+           if self.quantity > self.product.stock:
+               raise ValidationError(f"oh this  product only has {self.product.stock} items left in stock. you cannot order {self.quantity} item")
+
+
     def __str__(self):
         return f"Order {self.id} by {self.customer_name}"
+
 
 
 
